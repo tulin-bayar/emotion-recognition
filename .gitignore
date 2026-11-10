@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local Python environment
+.venv/
+
+# Trained model files
+models/*
+!models/.gitkeep
+
+# Local credentials
+.env

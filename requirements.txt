@@ -3,6 +3,6 @@ numpy
 scikit-learn
 matplotlib
 seaborn
-datasets
+datasets==4.3.0
 streamlit
 ipykernel

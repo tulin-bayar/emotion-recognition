@@ -43,8 +43,8 @@ st.set_page_config(
 st.markdown("""
 <style>
     .stApp {
-        background-color: #F7F7FC;
-        color: #283451;
+        background-color: var(--background-color);
+        color: var(--text-color);
     }
 
     .block-container {
@@ -53,8 +53,11 @@ st.markdown("""
         max-width: 1200px;
     }
 
+    h1, h2, h3, h4, p, label {
+        color: var(--text-color);
+    }
+
     h1, h2, h3 {
-        color: #283451 !important;
         font-weight: 700 !important;
     }
 
@@ -63,18 +66,21 @@ st.markdown("""
     }
 
     .subtitle {
-        color: #78839A;
+        color: var(--text-color);
+        opacity: 0.75;
         font-size: 1rem;
         margin-bottom: 1.5rem;
     }
 
+    /* Result card */
+
     .result-card {
-        background: #FFFFFF;
+        background: var(--secondary-background-color);
+        color: var(--text-color);
         padding: 25px;
         border-radius: 18px;
-        border: 1px solid #EAE6FA;
+        border: 1px solid #8172CC;
         text-align: center;
-        box-shadow: 0 3px 12px rgba(40, 52, 81, 0.04);
         margin-bottom: 15px;
     }
 
@@ -84,52 +90,127 @@ st.markdown("""
         margin: 8px 0;
     }
 
+    .prediction-score {
+        color: var(--text-color);
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+
+    .model-name {
+        color: var(--text-color);
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+
     .muted {
-        color: #78839A;
+        color: var(--text-color);
+        opacity: 0.72;
         font-size: 0.9rem;
     }
 
+    /* Emotion colors - Light Mode */
+
+    .emotion-sadness { color: #4268A8 !important; }
+    .emotion-joy { color: #987000 !important; }
+    .emotion-love { color: #C34D73 !important; }
+    .emotion-anger { color: #C34842 !important; }
+    .emotion-fear { color: #7655AD !important; }
+    .emotion-surprise { color: #25877F !important; }
+
+    /* Emotion colors - Dark Mode */
+
+    [data-theme="dark"] .emotion-sadness {
+        color: #91B5F5 !important;
+    }
+
+    [data-theme="dark"] .emotion-joy {
+        color: #F5D36C !important;
+    }
+
+    [data-theme="dark"] .emotion-love {
+        color: #F39AB7 !important;
+    }
+
+    [data-theme="dark"] .emotion-anger {
+        color: #F28B83 !important;
+    }
+
+    [data-theme="dark"] .emotion-fear {
+        color: #B69AEF !important;
+    }
+
+    [data-theme="dark"] .emotion-surprise {
+        color: #7AD8CF !important;
+    }
+
+    /* ALL BUTTONS */
+
     div.stButton > button {
-        border-radius: 11px;
-        border: 1px solid #DED9F2;
-        color: #51477D;
-        background-color: #FFFFFF;
-        font-weight: 600;
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        min-height: 42px !important;
+        border-radius: 11px !important;
+        border: 1px solid #8172CC !important;
+        color: #51477D !important;
+        background-color: #FFFFFF !important;
+        font-weight: 600 !important;
         transition: 0.2s ease;
     }
 
     div.stButton > button:hover {
-        border-color: #8172CC;
-        color: #8172CC;
-        background-color: #F1EEFC;
+        border-color: #6E5DB9 !important;
+        color: #6E5DB9 !important;
+        background-color: #F1EEFC !important;
     }
 
+    /* ANALYZE BUTTON */
+
     div.stButton > button[kind="primary"] {
-        background-color: #8172CC;
-        border-color: #8172CC;
-        color: white;
+        background-color: #8172CC !important;
+        border: 1px solid #8172CC !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
     }
 
     div.stButton > button[kind="primary"]:hover {
-        background-color: #6E5DB9;
-        border-color: #6E5DB9;
-        color: white;
+        background-color: #6E5DB9 !important;
+        border-color: #6E5DB9 !important;
+        color: #FFFFFF !important;
     }
+
+    /* Dark mode secondary buttons */
+
+    [data-theme="dark"] div.stButton > button:not([kind="primary"]) {
+        background-color: #29243B !important;
+        color: #F0ECFF !important;
+        border-color: #9A8BE0 !important;
+    }
+
+    [data-theme="dark"] div.stButton > button:not([kind="primary"]):hover {
+        background-color: #3A3155 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* Inputs */
 
     div[data-baseweb="select"] > div,
     div[data-baseweb="textarea"] > div {
         border-radius: 11px;
-        border-color: #DED9F2;
     }
 
+    /* About section */
+
     div[data-testid="stExpander"] {
-        background-color: #FFFFFF;
-        border: 1px solid #EAE6FA;
+        background-color: var(--secondary-background-color);
+        border: 1px solid #8172CC;
         border-radius: 12px;
     }
 
     hr {
-        border-color: #EAE6FA;
+        border-color: #8172CC;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -138,6 +219,7 @@ st.markdown("""
 # -------------------- CHART --------------------
 
 def draw_chart(scores, dominant):
+
     values = [scores.get(e, 0.0) * 100 for e in EMOTIONS]
 
     colors = [
@@ -146,6 +228,7 @@ def draw_chart(scores, dominant):
     ]
 
     fig, ax = plt.subplots(figsize=(7, 3.8))
+
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
@@ -157,18 +240,22 @@ def draw_chart(scores, dominant):
     )
 
     ax.set_xlim(0, 110)
-    ax.set_xlabel("Prediction score (%)", color="#78839A")
+    ax.set_xlabel("Prediction score (%)", color="#283451")
     ax.invert_yaxis()
 
-    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
     ax.spines["bottom"].set_color("#EAE6FA")
 
     ax.tick_params(axis="y", length=0, colors="#283451")
     ax.tick_params(axis="x", colors="#78839A")
+
     ax.grid(axis="x", alpha=0.15)
     ax.set_axisbelow(True)
 
     for bar, value in zip(bars, values):
+
         ax.text(
             value + 1.5,
             bar.get_y() + bar.get_height() / 2,
@@ -179,12 +266,14 @@ def draw_chart(scores, dominant):
         )
 
     fig.tight_layout()
+
     return fig
 
 
 # -------------------- RESULT CARD --------------------
 
 def show_result(result, model_name):
+
     label = result["label"].lower()
     scores = result["scores"]
 
@@ -200,11 +289,11 @@ def show_result(result, model_name):
         <div class="result-card">
             <div style="font-size: 2.6rem;">{emoji}</div>
             <div class="muted">PREDICTED EMOTION</div>
-            <div class="emotion-name" style="color:{color};">
+            <div class="emotion-name emotion-{label}">
                 {label.capitalize()}
             </div>
-            <div class="muted">{model_name}</div>
-            <h2 style="color:#283451;">{confidence:.1%}</h2>
+            <div class="model-name">{model_name}</div>
+            <div class="prediction-score">{confidence:.1%}</div>
             <div class="muted">Prediction score</div>
         </div>
         """,
@@ -219,7 +308,9 @@ def show_result(result, model_name):
     st.markdown("#### Emotion distribution")
 
     fig = draw_chart(scores, label)
+
     st.pyplot(fig, use_container_width=True)
+
     plt.close(fig)
 
 
@@ -260,6 +351,7 @@ left, right = st.columns([1, 1.15], gap="large")
 
 
 with left:
+
     st.markdown("### ✍️ Your message")
 
     st.text_area(
@@ -278,6 +370,7 @@ with left:
     st.markdown("**Try a sample message:**")
 
     for i, sample in enumerate(SAMPLES):
+
         st.button(
             sample,
             key=f"sample_{i}",
@@ -308,6 +401,7 @@ with left:
     analyze_col, clear_col = st.columns(2)
 
     with analyze_col:
+
         analyze = st.button(
             "🔍 Analyze message",
             type="primary",
@@ -315,6 +409,7 @@ with left:
         )
 
     with clear_col:
+
         st.button(
             "Clear",
             use_container_width=True,
@@ -322,51 +417,67 @@ with left:
         )
 
     if analyze:
+
+        # Clear previous results before a new analysis.
+        st.session_state.results = None
+
         message = st.session_state.message.strip()
 
         if not message:
+
             st.warning("Please enter a message before analyzing.")
 
         else:
+
             try:
+
                 with st.spinner("Analyzing your message..."):
 
                     results = {}
 
                     if compare:
-                        results["DistilBERT"] = (
-                            predict_distilbert([message])[0]
-                        )
 
-                        results["TF-IDF + Logistic Regression"] = (
-                            predict_baseline([message])[0]
-                        )
+                        if predict_baseline is not None:
+
+                            results["DistilBERT"] = (
+                                predict_distilbert([message])[0]
+                            )
+
+                            results["TF-IDF + Logistic Regression"] = (
+                                predict_baseline([message])[0]
+                            )
 
                     elif model_name == "DistilBERT":
+
                         results["DistilBERT"] = (
                             predict_distilbert([message])[0]
                         )
 
                     else:
+
                         results[model_name] = (
                             predict_baseline([message])[0]
                         )
 
-                    st.session_state.results = results
+                    if results:
+                        st.session_state.results = results
 
             except FileNotFoundError:
+
                 st.error(
                     "A required model file is missing. "
                     "Please check the models folder and model setup."
                 )
 
             except Exception as e:
+
                 st.error(f"Prediction failed: {e}")
 
 
 # -------------------- RESULTS --------------------
 
 with right:
+
     st.markdown("### 📊 Analysis results")
 
     results = st.session_state.results
@@ -374,21 +485,27 @@ with right:
     if results:
 
         if len(results) == 2:
+
             result_cols = st.columns(2)
 
             for col, (name, result) in zip(
                 result_cols,
                 results.items()
             ):
+
                 with col:
+
                     st.markdown(f"**{name}**")
                     show_result(result, name)
 
         else:
+
             name, result = next(iter(results.items()))
+
             show_result(result, name)
 
     else:
+
         st.info(
             "Your prediction results will appear here. "
             "Enter a message and click Analyze."

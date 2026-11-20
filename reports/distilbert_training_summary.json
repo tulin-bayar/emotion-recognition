@@ -1,0 +1,30 @@
+{
+  "base_model": "distilbert/distilbert-base-uncased",
+  "train_rows": 15984,
+  "validation_rows": 1997,
+  "label_names": [
+    "sadness",
+    "joy",
+    "love",
+    "anger",
+    "fear",
+    "surprise"
+  ],
+  "max_length": 128,
+  "epochs": 3,
+  "batch_size": 8,
+  "learning_rate": 2e-05,
+  "weight_decay": 0.01,
+  "warmup_ratio": 0.1,
+  "seed": 42,
+  "best_checkpoint": "C:\\Users\\VİCTUS\\Downloads\\AdvanceProgramming\\Emotion_Recognition\\emotion-recognition\\models\\distilbert-checkpoints\\checkpoint-3996",
+  "validation_results": {
+    "eval_loss": 0.1837512105703354,
+    "eval_accuracy": 0.942914371557336,
+    "eval_macro_f1": 0.9193532114832443,
+    "eval_runtime": 1.5007,
+    "eval_samples_per_second": 1330.697,
+    "eval_steps_per_second": 166.587,
+    "epoch": 3.0
+  }
+}

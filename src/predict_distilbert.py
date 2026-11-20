@@ -1,4 +1,11 @@
 
+"""DistilBERT emotion predictor.
+
+Both predict_emotion() and predict_texts() are supported.
+Input: a list of messages.
+Output: predictions in the same order.
+"""
+
 from pathlib import Path
 
 import torch
@@ -8,12 +15,8 @@ from transformers import (
 )
 
 
-# --------------------------------------------------
-# 1. Project paths and emotion labels
-# --------------------------------------------------
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_PATH = PROJECT_ROOT / "models" / "distilbert"
+MODEL_DIR = PROJECT_ROOT / "models" / "distilbert"
 
 EMOTION_LABELS = [
     "sadness",
@@ -24,43 +27,50 @@ EMOTION_LABELS = [
     "surprise"
 ]
 
-DEVICE = torch.device("cpu")
+MAX_LENGTH = 128
+BATCH_SIZE = 32
 
-# These will be loaded once and reused
-tokenizer = None
-model = None
-id2label = None
+REQUIRED_FILES = [
+    "config.json",
+    "model.safetensors",
+    "vocab.txt",
+    "tokenizer_config.json"
+]
 
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
 
-# --------------------------------------------------
-# 2. Load DistilBERT model and tokenizer
-# --------------------------------------------------
+_cache = {}
+
 
 def load_distilbert():
-    global tokenizer, model, id2label
+    """Load the tokenizer and model once."""
 
-    if model is not None and tokenizer is not None:
-        return
+    if "model" in _cache:
+        return _cache["tokenizer"], _cache["model"], _cache["id2label"]
 
-    if not MODEL_PATH.exists():
+    missing = [
+        file for file in REQUIRED_FILES
+        if not (MODEL_DIR / file).exists()
+    ]
+
+    if missing:
         raise FileNotFoundError(
-            f"DistilBERT model not found: {MODEL_PATH}"
+            f"Missing DistilBERT files in {MODEL_DIR}: {missing}"
         )
 
     print("Loading DistilBERT model...")
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        str(MODEL_PATH)
-    )
+    tokenizer = AutoTokenizer.from_pretrained(str(MODEL_DIR))
 
     model = AutoModelForSequenceClassification.from_pretrained(
-        str(MODEL_PATH)
+        str(MODEL_DIR)
     )
 
     model.to(DEVICE)
     model.eval()
 
-    # Read the emotion mapping from the model configuration
     id2label = {
         int(class_id): emotion.lower()
         for class_id, emotion in model.config.id2label.items()
@@ -71,21 +81,30 @@ def load_distilbert():
             f"Unexpected model labels: {id2label}"
         )
 
+    _cache.update({
+        "tokenizer": tokenizer,
+        "model": model,
+        "id2label": id2label
+    })
+
     print("DistilBERT loaded successfully!")
     print("Device:", DEVICE)
     print("Labels:", id2label)
 
+    return tokenizer, model, id2label
 
-# --------------------------------------------------
-# 3. Predict emotions for a list of messages
-# --------------------------------------------------
 
-def predict_emotion(messages, batch_size=32):
+def predict_emotion(messages, batch_size=BATCH_SIZE):
+    """Predict emotions for a list of messages."""
 
-    if not isinstance(messages, list) or not messages:
-        raise ValueError(
-            "Please provide a non-empty list of messages."
-        )
+    if isinstance(messages, str):
+        messages = [messages]
+
+    if not isinstance(messages, list):
+        raise ValueError("Input must be a list of messages.")
+
+    if not messages:
+        return []
 
     if any(
         not isinstance(message, str) or not message.strip()
@@ -98,21 +117,19 @@ def predict_emotion(messages, batch_size=32):
     if not isinstance(batch_size, int) or batch_size < 1:
         raise ValueError("batch_size must be a positive integer.")
 
-    load_distilbert()
+    tokenizer, model, id2label = load_distilbert()
 
     results = []
 
-    # Process messages in batches
     for start in range(0, len(messages), batch_size):
 
         batch_messages = messages[start:start + batch_size]
 
-        # Tokenize the messages
         inputs = tokenizer(
             batch_messages,
             padding=True,
             truncation=True,
-            max_length=128,
+            max_length=MAX_LENGTH,
             return_tensors="pt"
         )
 
@@ -121,7 +138,6 @@ def predict_emotion(messages, batch_size=32):
             for key, value in inputs.items()
         }
 
-        # Run model inference
         with torch.no_grad():
             outputs = model(**inputs)
 
@@ -130,7 +146,6 @@ def predict_emotion(messages, batch_size=32):
                 dim=1
             )
 
-        # Convert predictions into the shared output format
         for probability_row in probabilities:
 
             scores = {
@@ -150,7 +165,6 @@ def predict_emotion(messages, batch_size=32):
 
             predicted_emotion = id2label[predicted_output_id]
 
-            # Use the shared project label ID
             predicted_label_id = EMOTION_LABELS.index(
                 predicted_emotion
             )
@@ -164,9 +178,11 @@ def predict_emotion(messages, batch_size=32):
     return results
 
 
-# --------------------------------------------------
-# 4. Test the prediction function
-# --------------------------------------------------
+def predict_texts(texts):
+    """Alternative function name for compatibility."""
+
+    return predict_emotion(texts)
+
 
 if __name__ == "__main__":
 
@@ -178,15 +194,6 @@ if __name__ == "__main__":
 
     predictions = predict_emotion(messages)
 
-    print("\nDISTILBERT PREDICTION RESULTS")
-    print("----------------------------")
-
     for message, result in zip(messages, predictions):
-
         print("\nMessage:", message)
-        print("Predicted emotion:", result["label"])
-        print("Label ID:", result["label_id"])
-        print("Scores:")
-
-        for emotion, score in result["scores"].items():
-            print(f"  {emotion}: {score:.4f}")
+        print("Prediction:", result)
